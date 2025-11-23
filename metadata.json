@@ -1,0 +1,7 @@
+{
+  "name": "Kissan Dost AI",
+  "description": "Expert Agricultural Advisor for South Asian Farmers using Gemini 2.5 Flash.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
