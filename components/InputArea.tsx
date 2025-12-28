@@ -28,6 +28,16 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
     if (typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) {
       setIsSpeechSupported(true);
     }
+    
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
   }, []);
 
   const getSpeechLanguage = (lang: LanguageOption): string => {
@@ -41,18 +51,38 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
     }
   };
 
-  const handleVoiceInput = () => {
-    // Clear previous errors
+  const handleVoiceInput = async () => {
     setErrorMessage(null);
 
+    // If already listening, stop it
     if (isListening) {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+           recognitionRef.current.stop();
+        } catch (e) {
+           console.warn("Could not stop recognition", e);
+        }
       }
       setIsListening(false);
       return;
     }
 
+    // 1. Explicitly request permission to trigger the browser prompt
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted, stop the stream immediately as we just needed the permission
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      console.error("Microphone permission denied", err);
+      const msg = currentLanguage === 'English'
+        ? 'Microphone access denied. Please allow permission.'
+        : 'مائیکروفون کی اجازت نہیں دی گئی۔';
+      setErrorMessage(msg);
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
+
+    // 2. Start Speech Recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
@@ -86,27 +116,32 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
       
       let msg = '';
       if (event.error === 'not-allowed') {
-        msg = currentLanguage === 'English' ? 'Microphone access denied. Please enable permissions.' : 'مائیکروفون کی اجازت نہیں دی گئی۔';
+        msg = currentLanguage === 'English' 
+            ? 'Microphone blocked. Check browser settings.' 
+            : 'مائیکروفون بلاک ہے۔';
       } else if (event.error === 'no-speech') {
-        return; // Ignore no-speech errors to avoid spamming
+        return; 
       } else if (event.error === 'network') {
         msg = 'Network error.';
       } else {
         msg = 'Error: ' + event.error;
       }
       
-      setErrorMessage(msg);
-      // Auto hide error after 4 seconds
-      setTimeout(() => setErrorMessage(null), 4000);
+      if (msg) {
+        setErrorMessage(msg);
+        setTimeout(() => setErrorMessage(null), 5000);
+      }
     };
 
     recognition.onend = () => setIsListening(false);
 
     recognitionRef.current = recognition;
+    
     try {
       recognition.start();
     } catch (e) {
       console.error("Failed to start recognition", e);
+      setErrorMessage("Failed to start microphone.");
     }
   };
 
@@ -132,9 +167,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
     e.preventDefault();
     if ((!inputText.trim() && !selectedImage) || isLoading) return;
     
-    // Stop listening if active
     if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch(e) { /* ignore */ }
       setIsListening(false);
     }
 
@@ -157,9 +193,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
             />
             <button
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"
+              aria-label="Remove image"
+              className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme.ring} dark:focus:ring-offset-slate-900`}
             >
-              <X className="w-3 h-3" />
+              <X className="w-3 h-3" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -168,9 +205,10 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
            <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:${theme.primaryText} hover:${theme.border} transition-colors flex-shrink-0`}
+            aria-label="Upload Image"
+            className={`w-[52px] h-[52px] flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:${theme.primaryText} hover:${theme.border} transition-colors flex-shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme.ring} dark:focus:ring-offset-slate-950`}
           >
-            <ImageIcon className="w-5 h-5" />
+            <ImageIcon className="w-5 h-5" aria-hidden="true" />
           </button>
           <input
             type="file"
@@ -178,6 +216,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
             onChange={handleImageSelect}
             accept="image/*"
             className="hidden"
+            aria-hidden="true"
           />
 
           <div className="flex-grow relative">
@@ -185,7 +224,8 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={t.inputPlaceholder}
-              className={`w-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 ${theme.ring} focus:ring-1 pl-4 pr-4 py-3.5 resize-none min-h-[52px] max-h-32 shadow-inner text-base placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-transparent`}
+              aria-label="Message input"
+              className={`w-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 ${theme.ring} focus:ring-1 pl-4 pr-4 py-3.5 resize-none min-h-[52px] max-h-32 shadow-inner text-base placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-transparent focus:outline-none`}
               rows={1}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -196,30 +236,33 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
             />
           </div>
 
-          {/* Voice Input Button */}
+          {/* Voice Input Button - Inline */}
           {isSpeechSupported && (
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               {errorMessage && (
-                <div className="absolute bottom-full mb-2 right-0 w-max max-w-[200px] bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs px-2 py-1.5 rounded shadow-lg border border-red-200 dark:border-red-800 z-50 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                    <span>{errorMessage}</span>
+                <div 
+                  role="alert" 
+                  className="absolute bottom-full mb-2 right-0 w-max max-w-[200px] bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs px-3 py-2 rounded-lg shadow-xl border border-red-200 dark:border-red-800 z-50 animate-in fade-in slide-in-from-bottom-2"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span className="leading-snug">{errorMessage}</span>
                   </div>
-                  {/* Arrow */}
-                  <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-red-100 dark:bg-red-900 border-r border-b border-red-200 dark:border-red-800 rotate-45"></div>
+                  <div className="absolute top-full right-4 -mt-1.5 w-3 h-3 bg-red-100 dark:bg-red-900 border-r border-b border-red-200 dark:border-red-800 rotate-45"></div>
                 </div>
               )}
               <button
                 type="button"
                 onClick={handleVoiceInput}
-                className={`p-3.5 rounded-xl flex-shrink-0 transition-all flex items-center justify-center shadow-lg border ${
+                aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                className={`w-[52px] h-[52px] flex items-center justify-center rounded-xl transition-all shadow-sm border focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme.ring} dark:focus:ring-offset-slate-950 ${
                   isListening 
                     ? 'bg-red-500 text-white border-red-600 animate-pulse shadow-red-500/30' 
                     : `bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:${theme.primaryText} hover:${theme.border}`
                 }`}
                 title={t.voiceInput}
               >
-                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isListening ? <MicOff className="w-5 h-5" aria-hidden="true" /> : <Mic className="w-5 h-5" aria-hidden="true" />}
               </button>
             </div>
           )}
@@ -227,16 +270,17 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading, currentLanguag
           <button
             type="submit"
             disabled={(!inputText.trim() && !selectedImage) || isLoading}
-            className={`p-3.5 rounded-xl flex-shrink-0 font-medium transition-all flex items-center gap-2 shadow-lg ${
+            aria-label={t.askButton}
+            className={`h-[52px] px-5 rounded-xl flex-shrink-0 font-medium transition-all flex items-center justify-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme.ring} dark:focus:ring-offset-slate-950 ${
               (!inputText.trim() && !selectedImage) || isLoading
                 ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
                 : `${theme.accentBg} ${theme.accentBgHover} text-white border ${theme.border} hover:shadow-lg`
             }`}
           >
              {isLoading ? (
-               <Loader2 className="w-5 h-5 animate-spin" />
+               <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
              ) : (
-               <Send className="w-5 h-5" />
+               <Send className="w-5 h-5" aria-hidden="true" />
              )}
              <span className="hidden md:inline">{t.askButton}</span>
           </button>

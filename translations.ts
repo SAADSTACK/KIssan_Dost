@@ -14,6 +14,8 @@ export const translations = {
     inputPlaceholder: "Ask about crop diseases, market prices, or farming advice...",
     voiceInput: "Voice Input",
     askButton: "Ask Kissan Dost",
+    searchPlaceholder: "Search messages...",
+    noResults: "No matching messages found.",
     settings: {
       title: "Settings",
       language: "Language Preference",
@@ -49,6 +51,8 @@ export const translations = {
     inputPlaceholder: "فصل کی بیماری، منڈی کے نرخ، یا کاشتکاری کے مشورے پوچھیں...",
     voiceInput: "آواز ان پٹ",
     askButton: "کسان دوست سے پوچھیں",
+    searchPlaceholder: "پیغامات تلاش کریں...",
+    noResults: "کوئی مماثل پیغام نہیں ملا۔",
     settings: {
       title: "ترتیبات",
       language: "زبان کا انتخاب",
@@ -84,6 +88,8 @@ export const translations = {
     inputPlaceholder: "فصل دی بیماری، منڈی دے ریٹ، یا کھیتی باڑی دے مشورے پچھو...",
     voiceInput: "آواز ان پٹ",
     askButton: "کسان دوست کولوں پچھو",
+    searchPlaceholder: "پیغامات لبھو...",
+    noResults: "کوئی مماثل پیغام نہیں لبھا۔",
     settings: {
       title: "ترتیبات",
       language: "زبان دا انتخاب",
@@ -119,6 +125,8 @@ export const translations = {
     inputPlaceholder: "فصل جي بيماري، منڊي جي قيمت، يا پوکي بابت صلاح پڇو...",
     voiceInput: "آواز ان پٽ",
     askButton: "ڪسان دوست کان پڇو",
+    searchPlaceholder: "نياپا ڳوليو...",
+    noResults: "ڪو به ساڳيو پيغام نه مليو.",
     settings: {
       title: "سيٽنگون",
       language: "ٻولي جي چونڊ",
@@ -136,7 +144,7 @@ export const translations = {
     message: {
       advisorResponse: "صلاحڪار جو جواب",
       analysisResult: "تجزيو نتيجو",
-      diagnosis: "تشخيص / تجزيو",
+      diagnosis: "تشخیص / تجزيو",
       actionPlan: "عملي منصوبو",
       strategicAdvice: "اسٽريٽجڪ مشورو",
       sources: "ذريعا",
@@ -154,6 +162,8 @@ export const translations = {
     inputPlaceholder: "د فصل ناروغۍ، د بازار نرخونه، یا د کرنې مشوره وپوښتئ...",
     voiceInput: "غږ ان پټ",
     askButton: "د کسان دوست نه وپوښتئ",
+    searchPlaceholder: "پیغامونه لټول...",
+    noResults: "هیڅ سمون لرونکی پیغام ونه موندل شو.",
     settings: {
       title: "ترتیبات",
       language: "د ژبې انتخاب",

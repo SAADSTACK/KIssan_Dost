@@ -21,6 +21,20 @@ export interface Message {
   gradient?: string; // CSS class for gradient background
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: number;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
 export type LanguageOption = 'Urdu' | 'Punjabi (Pakistani)' | 'English' | 'Sindhi' | 'Pashto';
 
 export type FontSizeOption = 'small' | 'normal' | 'large';
